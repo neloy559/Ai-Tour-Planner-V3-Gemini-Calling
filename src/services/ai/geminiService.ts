@@ -11,9 +11,49 @@ interface GeminiResponse {
   }>;
 }
 
+const planCache = new Map<string, GeminiResponse>();
+
+const DAILY_LIMIT = 20;
+let dailyRequestCount = 0;
+let lastResetDate = new Date().toDateString();
+
+function getCacheKey(prompt: string): string {
+  return prompt.toLowerCase().trim();
+}
+
+function getFromCache(prompt: string): GeminiResponse | null {
+  const key = getCacheKey(prompt);
+  return planCache.get(key) || null;
+}
+
+function saveToCache(prompt: string, data: GeminiResponse): void {
+  const key = getCacheKey(prompt);
+  planCache.set(key, data);
+}
+
+function checkRateLimit(): void {
+  const today = new Date().toDateString();
+  if (lastResetDate !== today) {
+    dailyRequestCount = 0;
+    lastResetDate = today;
+  }
+  if (dailyRequestCount >= DAILY_LIMIT) {
+    throw new Error('Daily API limit reached (20/day). Please try again tomorrow.');
+  }
+  dailyRequestCount++;
+}
+
 const GEMINI_MODEL = 'gemini-2.0-flash';
 
 export async function generateTravelPlan(prompt: string): Promise<GeminiResponse> {
+  const cached = getFromCache(prompt);
+  if (cached) {
+    console.log('Returning cached plan for:', prompt);
+    return cached;
+  }
+  
+  checkRateLimit();
+  
   const parsed = parsePrompt(prompt);
   
   const systemPrompt = `You are an expert travel planner. Generate a detailed travel itinerary based on the user's request.
@@ -83,14 +123,18 @@ IMPORTANT:
     }
 
     const jsonText = data.candidates[0].content.parts[0].text;
-    const parsed = JSON.parse(jsonText);
+    const aiResponse = JSON.parse(jsonText);
     
-    return {
-      title: parsed.title || 'Travel Plan',
-      summary: parsed.summary || '',
-      highlights: parsed.highlights || [],
-      itinerary: parsed.itinerary || [],
+    const result = {
+      title: aiResponse.title || 'Travel Plan',
+      summary: aiResponse.summary || '',
+      highlights: aiResponse.highlights || [],
+      itinerary: aiResponse.itinerary || [],
     };
+    
+    saveToCache(prompt, result);
+    
+    return result;
   } catch (error) {
     if (error instanceof SyntaxError) {
       throw new Error('Failed to parse AI response as JSON');
