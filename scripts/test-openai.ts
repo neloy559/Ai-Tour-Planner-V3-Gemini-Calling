@@ -1,0 +1,72 @@
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables from .env.local
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+
+import { generateTravelPlan } from '../src/services/ai/openaiService';
+
+async function runTest() {
+  console.log('🚀 Testing OpenAI Service...\n');
+
+  try {
+    // Check if OPENAI_API_KEY is set
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not set in environment variables');
+    }
+    console.log('✅ OPENAI_API_KEY is configured');
+    console.log(`   Key starts with: ${process.env.OPENAI_API_KEY.substring(0, 20)}...\n`);
+
+    console.log('📤 Sending test prompt: "3 days in Tokyo"\n');
+    
+    const startTime = Date.now();
+    const response = await generateTravelPlan('3 days in Tokyo');
+    const duration = Date.now() - startTime;
+    
+    console.log(`✅ Response received in ${duration}ms\n`);
+    
+    // Validate response structure
+    const requiredFields = ['title', 'summary', 'highlights', 'itinerary'];
+    const missingFields = requiredFields.filter(field => !(field in response));
+    
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+    }
+    
+    console.log('✅ All required fields present');
+    console.log('   - title:', response.title);
+    console.log('   - summary:', response.summary.substring(0, 100) + '...');
+    console.log('   - highlights:', response.highlights.length, 'items');
+    console.log('   - itinerary:', response.itinerary.length, 'days\n');
+    
+    // Validate itinerary structure
+    if (!Array.isArray(response.itinerary) || response.itinerary.length === 0) {
+      throw new Error('Itinerary is empty or not an array');
+    }
+    
+    const firstDay = response.itinerary[0];
+    if (!firstDay.day || !firstDay.title || !Array.isArray(firstDay.activities)) {
+      throw new Error('Itinerary day structure is invalid');
+    }
+    
+    console.log('✅ Itinerary structure is valid');
+    console.log('   Day 1:', firstDay.title);
+    console.log('   Activities:', firstDay.activities.length, 'items\n');
+    
+    // Print full response
+    console.log('📋 Full Response:');
+    console.log(JSON.stringify(response, null, 2));
+    
+    console.log('\n✅✅✅ ALL TESTS PASSED! ✅✅✅\n');
+    process.exit(0);
+    
+  } catch (error: any) {
+    console.error('\n❌ TEST FAILED:\n');
+    console.error(error.message);
+    console.error('\nStack trace:');
+    console.error(error.stack);
+    process.exit(1);
+  }
+}
+
+runTest();
