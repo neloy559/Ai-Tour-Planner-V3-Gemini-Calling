@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import Plan from '@/src/models/Plan';
-import { generateTravelPlan } from '@/src/services/ai/geminiService';
+import Plan from '@/models/Plan';
+import { generateTravelPlan } from '@/services/ai/geminiService';
 
 dotenv.config({ path: '.env.local' });
 

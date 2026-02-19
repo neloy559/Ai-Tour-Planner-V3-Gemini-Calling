@@ -48,9 +48,8 @@ export default function PrivacyPage() {
             If you have any questions about our privacy policy, please contact us at 
             privacy@aitravelplanner.com.
           </p>
-          </section>
-
-      </div>
+        </div>
+      </section>
     </div>
   );
 }
