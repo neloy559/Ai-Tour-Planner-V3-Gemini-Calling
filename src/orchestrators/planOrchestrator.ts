@@ -1,4 +1,4 @@
-import { generateTravelPlan } from '@/services/ai/huggingfaceService';
+import { generateTravelPlan } from '@/services/ai/geminiService';
 import { fetchHeroImage } from '@/services/media/imageService';
 import { updatePlanStatus } from '@/repositories/planRepository';
 import { z } from 'zod';
